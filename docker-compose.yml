@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  dreambooth:
+    image: saladtechnologies/dreambooth:sdxl-worker
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [ gpu ]
+              count: all
+    environment:
+      - API_KEY
+      - WANDB_API_KEY
+      - API_URL
+      - PYTHONUNBUFFERED=1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # command: nvidia-smi
+    volumes:
+      - ./images:/images
+      - ./output:/output
+    #   - ./models:/models
+    
+          
