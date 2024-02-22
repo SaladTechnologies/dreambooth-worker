@@ -49,6 +49,15 @@ def heartbeat(job_id):
             break
 
 
+def reset_for_next_job():
+    for file in os.listdir(config.input_dir):
+        os.remove(f"{config.input_dir}/{file}")
+    for file in os.listdir(config.output_dir):
+        if os.path.isdir(f"{config.output_dir}/{file}"):
+            os.rmdir(f"{config.output_dir}/{file}")
+        os.remove(f"{config.output_dir}/{file}")
+
+
 def main():
     global keep_alive
     global heartbeat_active
@@ -63,6 +72,7 @@ def main():
         heartbeat_thread = threading.Thread(
             target=heartbeat, args=(job["id"],))
         heartbeat_thread.start()
+        reset_for_next_job()
         if job["resume_from"] is not None:
             logging.info(f"Resuming from {job['resume_from']}")
             download_checkpoint(job["checkpoint_bucket"], job["resume_from"])
@@ -87,9 +97,9 @@ def main():
 
         if "pytorch_lora_weights.safetensors" in os.listdir(config.output_dir):
             upload_file(f"{config.output_dir}/pytorch_lora_weights.safetensors",
-                        job["checkpoint_bucket"], f"{job['checkpoint_prefix']}/pytorch_lora_weights.safetensors")
+                        job["checkpoint_bucket"], f"{job['checkpoint_prefix']}pytorch_lora_weights.safetensors")
             send_complete_webhook(
-                job["checkpoint_bucket"], f"{job['checkpoint_prefix']}/pytorch_lora_weights.safetensors", job["id"])
+                job["checkpoint_bucket"], f"{job['checkpoint_prefix']}pytorch_lora_weights.safetensors", job["id"])
 
         heartbeat_active = False
         heartbeat_thread.join()

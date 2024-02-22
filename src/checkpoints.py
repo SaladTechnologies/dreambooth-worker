@@ -80,9 +80,10 @@ class MyHandler(FileSystemEventHandler):
             self.wait_for_write_completion(event.src_path)
             zip_file_name = zip_checkpoint(event.src_path)
             upload_file(f"{config.output_dir}/{zip_file_name}", self.bucket,
-                        f"{self.prefix}/{zip_file_name}")
+                        f"{self.prefix}{zip_file_name}")
             send_progress_webhook(
-                self.bucket, f"{self.prefix}/{zip_file_name}", self.job_id)
+                self.bucket, f"{self.prefix}{zip_file_name}", self.job_id)
+            os.remove(f"{config.output_dir}/{zip_file_name}")
 
     def wait_for_write_completion(self, directory):
         logging.info(f"Waiting for write operations to stop in {directory}...")
