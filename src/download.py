@@ -1,16 +1,17 @@
-import requests
+from api import get_api_session
 import config
 import concurrent.futures
 
 
 def download_file(bucket, key, filename):
+    api = get_api_session()
     token_url = f"{config.api_base_url}/download/token"
-    download_token = requests.get(
-        token_url, params={"bucket": bucket, "key": key}, headers={"x-api-key": config.api_key}).json()["token"]
+    download_token = api.get(
+        token_url, params={"bucket": bucket, "key": key}).json()["token"]
 
     url = f"{config.api_base_url}/download/{bucket}/{key}"
-    response = requests.get(url, stream=True, headers={
-        'x-download-token': download_token, "x-api-key": config.api_key})
+    response = api.get(url, stream=True, headers={
+        'x-download-token': download_token})
     response.raise_for_status()
     with open(filename, "wb") as file:
         for chunk in response.iter_content(chunk_size=8192):

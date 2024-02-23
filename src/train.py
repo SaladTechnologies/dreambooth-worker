@@ -51,6 +51,7 @@ def train(job):
 
     try:
         env["WANDB_NAME"] = job["id"]
+        env["WANDB_RUN_ID"] = job["id"]
         subprocess.run(command_array, check=True, env=env)
         logging.info("Training complete.")
     except subprocess.CalledProcessError as e:

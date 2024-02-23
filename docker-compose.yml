@@ -23,5 +23,3 @@ services:
       - ./images:/images
       - ./output:/output
     #   - ./models:/models
-    
-          

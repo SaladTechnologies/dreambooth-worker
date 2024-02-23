@@ -1,12 +1,10 @@
-import requests
+from api import get_api_session
 import config
 import logging
 
-api = requests.Session()
-api.headers.update({"x-api-key": config.api_key})
-
 
 def send_webhook(url, bucket_name, key, job_id):
+    api = get_api_session()
     try:
         if url is None:
             return
@@ -29,23 +27,24 @@ def send_webhook(url, bucket_name, key, job_id):
 
 def send_progress_webhook(bucket_name, key, job_id):
     url = config.api_base_url + "/progress"
-    logging.info(f"Reporting Progress: {key} uploaded for job {job_id}")
+    logging.info(f"Reporting Job Progress: {key} uploaded for job {job_id}")
     send_webhook(url, bucket_name, key, job_id)
 
 
 def send_complete_webhook(bucket_name, key, job_id):
     url = config.api_base_url + "/complete"
-    logging.info(f"Reporting Complete: {key} uploaded for job {job_id}")
+    logging.info(f"Reporting Job Complete: {key} uploaded for job {job_id}")
     send_webhook(url, bucket_name, key, job_id)
 
 
 def send_failed_webhook(bucket_name, key, job_id):
     url = config.api_base_url + "/fail"
-    logging.info(f"Reporting Failed: {key} uploaded for job {job_id}")
+    logging.info(f"Reporting Job Failed: {key} uploaded for job {job_id}")
     send_webhook(url, bucket_name, key, job_id)
 
 
 def send_heartbeat(job_id):
+    api = get_api_session()
     url = config.api_base_url + f"/heartbeat/{job_id}"
     response = api.post(url)
     response.raise_for_status()

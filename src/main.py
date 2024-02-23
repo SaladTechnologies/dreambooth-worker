@@ -2,7 +2,7 @@ import config
 import logging
 from checkpoints import monitor_checkpoint_directories, download_checkpoint, stop_monitoring
 import threading
-import requests
+from api import get_api_session
 from download import concurrently_download
 from upload import upload_file
 from webhooks import send_heartbeat, send_complete_webhook
@@ -10,17 +10,16 @@ from train import train
 import time
 import signal
 import os
+import shutil
 
 
 log_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 logging.basicConfig(level=config.log_level, format=log_format,
                     datefmt="%m/%d/%Y %H:%M:%S")
 
-api = requests.Session()
-api.headers.update({"x-api-key": config.api_key})
-
 
 def get_work():
+    api = get_api_session()
     url = config.api_base_url + "/work"
     response = api.get(url)
     response.raise_for_status()
@@ -50,12 +49,21 @@ def heartbeat(job_id):
 
 
 def reset_for_next_job():
+    # Clear the input directory
     for file in os.listdir(config.input_dir):
-        os.remove(f"{config.input_dir}/{file}")
+        file_path = os.path.join(config.input_dir, file)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.remove(file_path)  # Remove files and links
+        else:
+            shutil.rmtree(file_path)  # Remove directories and their contents
+
+    # Clear the output directory
     for file in os.listdir(config.output_dir):
-        if os.path.isdir(f"{config.output_dir}/{file}"):
-            os.rmdir(f"{config.output_dir}/{file}")
-        os.remove(f"{config.output_dir}/{file}")
+        file_path = os.path.join(config.output_dir, file)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.remove(file_path)  # Remove files and links
+        else:
+            shutil.rmtree(file_path)  # Remove directories and their contents
 
 
 def main():
@@ -103,6 +111,7 @@ def main():
 
         heartbeat_active = False
         heartbeat_thread.join()
+        reset_for_next_job()
         logging.info(f"Work complete: {job['id']}")
 
 

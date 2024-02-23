@@ -1,7 +1,6 @@
 import math
 import os
-import requests
-from requests.adapters import HTTPAdapter, Retry
+from api import get_api_session
 import concurrent.futures
 import config
 
@@ -12,15 +11,16 @@ partsize = 10 * 1024 * 1024
 def upload_file(filename, bucket, key):
     global partsize
 
+    api = get_api_session()
     token_url = f"{config.api_base_url}/upload/token"
-    upload_token = requests.get(
-        token_url, params={"bucket": bucket, "key": key}, headers={"x-api-key": config.api_key}).json()["token"]
+    upload_token = api.get(
+        token_url, params={"bucket": bucket, "key": key}).json()["token"]
 
     url = f"{config.api_base_url}/upload/{bucket}/{key}"
 
     # Create the multipart upload
-    uploadId = requests.post(
-        url, params={"action": "mpu-create"}, headers={'x-upload-token': upload_token, "x-api-key": config.api_key}).json()["uploadId"]
+    uploadId = api.post(
+        url, params={"action": "mpu-create"}, headers={'x-upload-token': upload_token}).json()["uploadId"]
 
     part_count = math.ceil(os.stat(filename).st_size / partsize)
     # Create an executor for up to 25 concurrent uploads.
@@ -36,10 +36,10 @@ def upload_file(filename, bucket, key):
     uploaded_parts = [future.result() for future in futures]
 
     # complete the multipart upload
-    response = requests.post(
+    response = api.post(
         url,
         params={"action": "mpu-complete", "uploadId": uploadId},
-        headers={'x-upload-token': upload_token, "x-api-key": config.api_key},
+        headers={'x-upload-token': upload_token},
         json={"parts": uploaded_parts},
     )
     if response.status_code == 200:
@@ -55,10 +55,8 @@ def upload_part(filename, partsize, url, uploadId, index, token):
         part = file.read(partsize)
 
     # Retry policy for when uploading a part fails
-    api = requests.Session()
-    api.headers.update({"x-api-key": config.api_key, "x-upload-token": token})
-    retries = Retry(total=3, status_forcelist=[400, 500, 502, 503, 504])
-    api.mount("https://", HTTPAdapter(max_retries=retries))
+    api = get_api_session()
+    api.headers.update({"x-upload-token": token})
 
     return api.put(
         url,
