@@ -1,6 +1,7 @@
 from api import get_api_session
 import config
 import concurrent.futures
+import logging
 
 
 def download_file(bucket, key, filename):
@@ -10,13 +11,24 @@ def download_file(bucket, key, filename):
         token_url, params={"bucket": bucket, "key": key}).json()["token"]
 
     url = f"{config.api_base_url}/download/{bucket}/{key}"
-    response = api.get(url, stream=True, headers={
-        'x-download-token': download_token})
-    response.raise_for_status()
-    with open(filename, "wb") as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
-    print(f"downloaded {key} from {bucket} to {filename}")
+    try:
+        response = api.get(url, stream=True, headers={
+            'x-download-token': download_token})
+    except Exception as e:
+        logging.error(f"Error: Failed to download {key} from {bucket}: {e}")
+        raise e
+    else:
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            logging.error(e.response.reason)
+            logging.error(e.response.text)
+            raise e
+        else:
+            with open(filename, "wb") as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+            logging.info(f"Downloaded {key} from {bucket} to {filename}")
 
 
 def concurrently_download(files):

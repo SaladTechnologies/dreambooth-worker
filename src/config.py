@@ -3,7 +3,8 @@ import os
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
 # Directory where training data is stored
-input_dir = os.getenv("INPUT_DIR", "/images")
+instance_dir = os.getenv("INSTANCE_DIR", "/instance_images")
+class_dir = os.getenv("CLASS_DIR", "/class_images")
 
 # Directory where training output is stored
 output_dir = os.getenv("OUTPUT_DIR", "/output")
@@ -14,7 +15,8 @@ api_key = os.getenv("API_KEY", None)
 if api_base_url is None or api_key is None:
     raise ValueError("API_URL and API_KEY must be set.")
 
-os.makedirs(input_dir, exist_ok=True)
+os.makedirs(instance_dir, exist_ok=True)
+os.makedirs(class_dir, exist_ok=True)
 os.makedirs(output_dir, exist_ok=True)
 
 # Salad Machine and Container Group IDs

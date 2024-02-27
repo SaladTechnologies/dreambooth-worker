@@ -19,7 +19,7 @@ services:
       context: .
       dockerfile: Dockerfile
     # command: nvidia-smi
-    volumes:
-      - ./images:/images
-      - ./output:/output
+    # volumes:
+    #   - ./images:/images
+    #   - ./output:/output
     #   - ./models:/models

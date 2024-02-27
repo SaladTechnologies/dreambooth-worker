@@ -49,21 +49,12 @@ def heartbeat(job_id):
 
 
 def reset_for_next_job():
-    # Clear the input directory
-    for file in os.listdir(config.input_dir):
-        file_path = os.path.join(config.input_dir, file)
-        if os.path.isfile(file_path) or os.path.islink(file_path):
-            os.remove(file_path)  # Remove files and links
-        else:
-            shutil.rmtree(file_path)  # Remove directories and their contents
-
-    # Clear the output directory
-    for file in os.listdir(config.output_dir):
-        file_path = os.path.join(config.output_dir, file)
-        if os.path.isfile(file_path) or os.path.islink(file_path):
-            os.remove(file_path)  # Remove files and links
-        else:
-            shutil.rmtree(file_path)  # Remove directories and their contents
+    shutil.rmtree(config.instance_dir)
+    os.makedirs(config.instance_dir, exist_ok=True)
+    shutil.rmtree(config.class_dir)
+    os.makedirs(config.class_dir, exist_ok=True)
+    shutil.rmtree(config.output_dir)
+    os.makedirs(config.output_dir, exist_ok=True)
 
 
 def main():
@@ -86,8 +77,13 @@ def main():
             download_checkpoint(job["checkpoint_bucket"], job["resume_from"])
 
         images = [{"bucket": job["data_bucket"], "key": image,
-                   "filename": f"{config.input_dir}/{image.split('/')[-1]}"} for image in job["data_keys"]]
+                   "filename": f"{config.instance_dir}/{image.split('/')[-1]}"} for image in job["instance_data_keys"]]
         concurrently_download(images)
+
+        if "class_data_keys" in job and job["class_data_keys"] is not None and len(job["class_data_keys"]) > 0:
+            class_images = [{"bucket": job["data_bucket"], "key": image,
+                             "filename": f"{config.class_dir}/{image.split('/')[-1]}"} for image in job["class_data_keys"]]
+            concurrently_download(class_images)
 
         training_thread = threading.Thread(target=train, args=(job,))
         monitoring_thread = threading.Thread(
