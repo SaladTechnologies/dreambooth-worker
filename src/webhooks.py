@@ -9,7 +9,7 @@ def send_webhook(url, bucket_name, key, job_id):
         if url is None:
             return
 
-        response = api.post(url, json={
+        payload = {
             "bucket_name": bucket_name,
             "key": key,
             "machine_id": config.salad_machine_id,
@@ -18,11 +18,14 @@ def send_webhook(url, bucket_name, key, job_id):
             "project_name": config.salad_project_name,
             "container_group_name": config.salad_container_group_name,
             "job_id": job_id,
-        })
+        }
+        payload = {k: v for k, v in payload.items() if v is not None}
+
+        response = api.post(url, json=payload)
         response.raise_for_status()
-        logging.info("Progress webhook sent successfully.")
+        logging.info("Webhook sent successfully.")
     except Exception as e:
-        logging.error(f"Error: {e}")
+        logging.error(e.response.json() if hasattr(e, "response") else e)
 
 
 def send_progress_webhook(bucket_name, key, job_id):

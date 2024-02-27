@@ -24,6 +24,7 @@ def train(job):
         f"--lr_warmup_steps={job['lr_warmup_steps']}",
         f"--max_train_steps={job['max_training_steps']}",
         f"--checkpointing_steps={job['checkpointing_steps']}",
+        '--seed=0',
         "--resume_from_checkpoint=latest",
         "--checkpoints_total_limit=1",
     ]
