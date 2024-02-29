@@ -11,13 +11,6 @@ from upload import upload_file
 from download import download_file
 from webhooks import send_progress_webhook
 
-keep_alive = True
-
-
-def stop_monitoring():
-    global keep_alive
-    keep_alive = False
-
 
 def zip_checkpoint(checkpoint_dir):
     # Get the name of the rightmost directory
@@ -104,8 +97,7 @@ class MyHandler(FileSystemEventHandler):
                 sys.exit(1)
 
 
-def monitor_checkpoint_directories(directory, bucket, prefix, job_id):
-    global keep_alive
+def monitor_checkpoint_directories(directory, bucket, prefix, job_id, stop_signal):
     event_handler = MyHandler(directory, bucket, prefix, job_id)
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
@@ -113,7 +105,7 @@ def monitor_checkpoint_directories(directory, bucket, prefix, job_id):
     logging.info(
         f"Monitoring directory: {directory} for new 'checkpoint-*' subdirectories...")
     try:
-        while keep_alive:
+        while not stop_signal.is_set():
             time.sleep(1)
         observer.stop()
     except KeyboardInterrupt:

@@ -3,11 +3,12 @@ import logging
 import subprocess
 from webhooks import send_failed_webhook
 import os
+import time
 
 env = os.environ.copy()
 
 
-def train(job):
+def train(job, stop_signal):
     command_array = [
         "accelerate", "launch", job['training_script'],
         f"--pretrained_model_name_or_path={job['pretrained_model_name_or_path']}",
@@ -55,7 +56,15 @@ def train(job):
     try:
         env["WANDB_NAME"] = job["id"]
         env["WANDB_RUN_ID"] = job["id"]
-        subprocess.run(command_array, check=True, env=env)
+        process = subprocess.Popen(command_array, env=env)
+
+        while process.poll() is None:
+            if stop_signal.is_set():
+                logging.info(
+                    "Received stop signal. Terminating training process.")
+                process.terminate()
+                return
+            time.sleep(1)
         logging.info("Training complete.")
     except subprocess.CalledProcessError as e:
         logging.error(f"Error: Failed to train model: {e}")

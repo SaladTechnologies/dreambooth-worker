@@ -1,6 +1,7 @@
+from requests import HTTPError
 import config
 import logging
-from checkpoints import monitor_checkpoint_directories, download_checkpoint, stop_monitoring
+from checkpoints import monitor_checkpoint_directories, download_checkpoint
 import threading
 from api import get_api_session
 from download import concurrently_download
@@ -30,21 +31,28 @@ def get_work():
 
 
 keep_alive = True
-
 heartbeat_active = False
 
 
-def heartbeat(job_id):
+def heartbeat(job_id, failed_event):
     global heartbeat_active
     global keep_alive
     while heartbeat_active:
         try:
             send_heartbeat(job_id)
             time.sleep(config.heartbeat_interval)
+        except HTTPError as e:
+            if e.response.status_code == 400:
+                logging.info(
+                    f"Stopping heartbeat for job {job_id}. Job has been canceled.")
+                heartbeat_active = False
+                failed_event.set()
+                break
         except Exception as e:
             logging.error(f"Error: {e}")
             keep_alive = False
             heartbeat_active = False
+            failed_event.set()
             break
 
 
@@ -60,7 +68,9 @@ def reset_for_next_job():
 def main():
     global keep_alive
     global heartbeat_active
+
     while keep_alive:
+        job_should_stop = threading.Event()
         job = get_work()
         if job is None:
             logging.info("No work available. Sleeping for 5 seconds...")
@@ -69,7 +79,7 @@ def main():
         logging.info(f"Got work: {job['id']}")
         heartbeat_active = True
         heartbeat_thread = threading.Thread(
-            target=heartbeat, args=(job["id"],))
+            target=heartbeat, args=(job["id"], job_should_stop))
         heartbeat_thread.start()
         reset_for_next_job()
         if job["resume_from"] is not None:
@@ -85,9 +95,10 @@ def main():
                              "filename": f"{config.class_dir}/{image.split('/')[-1]}"} for image in job["class_data_keys"]]
             concurrently_download(class_images)
 
-        training_thread = threading.Thread(target=train, args=(job,))
+        training_thread = threading.Thread(
+            target=train, args=(job, job_should_stop,))
         monitoring_thread = threading.Thread(
-            target=monitor_checkpoint_directories, args=(config.output_dir, job["checkpoint_bucket"], job["checkpoint_prefix"], job["id"]))
+            target=monitor_checkpoint_directories, args=(config.output_dir, job["checkpoint_bucket"], job["checkpoint_prefix"], job["id"], job_should_stop,))
 
         training_thread.start()
         monitoring_thread.start()
@@ -95,7 +106,6 @@ def main():
 
         training_thread.join()
         logging.info(f"Training process exited: {job['id']}")
-        stop_monitoring()
         monitoring_thread.join()
         logging.info(f"Monitoring process exited: {job['id']}")
 
@@ -108,6 +118,10 @@ def main():
         heartbeat_active = False
         heartbeat_thread.join()
         reset_for_next_job()
+        if job_should_stop.is_set():
+            logging.info(
+                f"Job {job['id']} failed or was canceled. Moving on to next job.")
+            continue
         logging.info(f"Work complete: {job['id']}")
 
 
