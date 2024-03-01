@@ -23,7 +23,7 @@ def train(job, stop_signal):
         f"--learning_rate={job['learning_rate']}",
         f"--lr_scheduler={job['lr_scheduler']}",
         f"--lr_warmup_steps={job['lr_warmup_steps']}",
-        f"--max_train_steps={job['max_training_steps']}",
+        f"--max_train_steps={job['max_train_steps']}",
         f"--checkpointing_steps={job['checkpointing_steps']}",
         '--seed=0',
         "--resume_from_checkpoint=latest",
@@ -63,9 +63,11 @@ def train(job, stop_signal):
                 logging.info(
                     "Received stop signal. Terminating training process.")
                 process.terminate()
+                process.wait()
                 return
             time.sleep(1)
         logging.info("Training complete.")
+        stop_signal.set()
     except subprocess.CalledProcessError as e:
         logging.error(f"Error: Failed to train model: {e}")
         send_failed_webhook(job["checkpoint_bucket"],

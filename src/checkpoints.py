@@ -80,18 +80,28 @@ class MyHandler(FileSystemEventHandler):
 
     def wait_for_write_completion(self, directory):
         logging.info(f"Waiting for write operations to stop in {directory}...")
-        while True:
+        expected_files = {"pytorch_lora_weights.safetensors", "optimizer.bin",
+                          "scheduler.bin", "scaler.pt", "random_states_0.pkl"}
+        found_files = set()
+        while not found_files == expected_files:
             time.sleep(1)
             try:
-                with os.scandir(directory) as it:
-                    for entry in it:
-                        if entry.is_file() and entry.stat().st_size == 0:
-                            # File size is 0, indicating ongoing write operation
-                            break
-                    else:
-                        # No ongoing write operations found
-                        logging.info("Write operations stopped.")
-                        return
+                if os.path.exists(os.path.join(directory, "sampler.bin")):
+                    expected_files.add("sampler.bin")
+                # Check if all expected files are present and have non-zero size,
+                # and have no write operations in progress
+                for file in expected_files:
+                    file_path = os.path.join(directory, file)
+                    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                        mod_time = os.path.getmtime(file_path)
+                        if (time.time() - mod_time) > .5 and file not in found_files:
+                            logging.info(
+                                f"File {file_path} has stopped writing.")
+                            found_files.add(file)
+                        elif (time.time() - mod_time) <= .5 and file not in found_files:
+                            logging.info(
+                                f"File {file_path} is still being written.")
+
             except Exception as e:
                 logging.error(f"Error: {e}")
                 sys.exit(1)
