@@ -43,7 +43,7 @@ def train(job, stop_signal):
         command_array.append("--with_prior_preservation")
         command_array.append(f"--prior_loss_weight={job['prior_loss_weight']}")
         command_array.append(f"--class_data_dir={config.class_dir}")
-        command_array.append(f"--class_prompt=\"{job['prompt']}\"")
+        command_array.append(f"--class_prompt=\"{job['class_prompt']}\"")
 
     if job["validation_epochs"] > 0 and job["validation_prompt"] is not None:
         command_array.append(
