@@ -11,10 +11,15 @@ services:
               capabilities: [ gpu ]
               count: all
     environment:
-      - API_KEY
+      - API_KEY=abc123
       - WANDB_API_KEY
-      - API_URL
+      - API_URL=http://host.docker.internal:8787
       - PYTHONUNBUFFERED=1
+      - SALAD_MACHINE_ID=123
+      - SALAD_CONTAINER_GROUP_NAME=lora-8
+      - SALAD_PROJECT_NAME=dreambooth
+      - SALAD_CONTAINER_GROUP_ID=abc
+      - SALAD_ORGANIZATION_NAME=org123
     build:
       context: .
       dockerfile: Dockerfile

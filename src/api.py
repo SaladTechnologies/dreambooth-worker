@@ -13,4 +13,5 @@ def get_api_session():
         backoff_factor=1,
         raise_on_status=False)
     api.mount("https://", HTTPAdapter(max_retries=retries))
+    api.mount("http://", HTTPAdapter(max_retries=retries))
     return api

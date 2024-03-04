@@ -49,5 +49,13 @@ def send_failed_webhook(bucket_name, key, job_id):
 def send_heartbeat(job_id):
     api = get_api_session()
     url = config.api_base_url + f"/heartbeat/{job_id}"
-    response = api.post(url)
+    payload = {
+        "machine_id": config.salad_machine_id,
+        "container_group_id": config.salad_container_group_id,
+        "organization_name": config.salad_organization_name,
+        "project_name": config.salad_project_name,
+        "container_group_name": config.salad_container_group_name,
+    }
+    payload = {k: v for k, v in payload.items() if v is not None}
+    response = api.post(url, json=payload)
     response.raise_for_status()

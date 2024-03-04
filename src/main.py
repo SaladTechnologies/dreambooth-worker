@@ -22,7 +22,13 @@ logging.basicConfig(level=config.log_level, format=log_format,
 def get_work():
     api = get_api_session()
     url = config.api_base_url + "/work"
-    response = api.get(url)
+    response = api.get(url, params={
+        "machine_id": config.salad_machine_id,
+        "container_group_id": config.salad_container_group_id,
+        "organization_name": config.salad_organization_name,
+        "project_name": config.salad_project_name,
+        "container_group_name": config.salad_container_group_name,
+    })
     response.raise_for_status()
     body = response.json()
     if len(body) == 0:
