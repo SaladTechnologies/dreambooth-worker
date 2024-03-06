@@ -14,7 +14,7 @@ class ClassDataMonitor(FileSystemEventHandler):
         self.prefix = prefix
 
     def on_created(self, event):
-        if event.is_file and event.src_path.startswith(self.class_data_dir):
+        if not event.is_directory and event.src_path.startswith(self.class_data_dir):
             print(f"File {event.src_path} has been created!")
             self.wait_for_write_completion(event.src_path)
             upload_file(event.src_path, self.bucket,
