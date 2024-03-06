@@ -55,9 +55,9 @@ def job_to_command_array(job):
         command_array.append("--with_prior_preservation")
         command_array.append(f"--class_data_dir={config.class_dir}")
 
-        if 'prior_preservation_weight' in job:
+        if 'prior_loss_weight' in job:
             command_array.append(
-                f"--prior_preservation_weight={job['prior_preservation_weight']}")
+                f"--prior_loss_weight={job['prior_loss_weight']}")
 
         if "class_prompt" in job:
             command_array.append(f"--class_prompt=\"{job['class_prompt']}\"")
