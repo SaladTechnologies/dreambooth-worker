@@ -8,7 +8,7 @@ import time
 env = os.environ.copy()
 
 
-def train(job, stop_signal):
+def job_to_command_array(job):
     command_array = [
         "accelerate", "launch", job['training_script'],
         f"--pretrained_model_name_or_path={job['pretrained_model_name_or_path']}",
@@ -73,6 +73,12 @@ def train(job, stop_signal):
         command_array.append(f"--report_to=wandb")
         command_array.append(f"--sample_batch_size={job['sample_batch_size']}")
 
+    return command_array
+
+
+def train(job, stop_signal):
+    command_array = job_to_command_array(job)
+
     logging.info(f"Training command: {' '.join(command_array)}")
 
     try:
@@ -88,10 +94,15 @@ def train(job, stop_signal):
                 process.wait()
                 return
             time.sleep(1)
-        logging.info("Training complete.")
         stop_signal.set()
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(
+                process.returncode, command_array)
+        logging.info("Training complete.")
+
     except subprocess.CalledProcessError as e:
         logging.error(f"Error: Failed to train model: {e}")
         send_failed_webhook(job["checkpoint_bucket"],
                             job["checkpoint_prefix"], job["id"])
+        stop_signal.set()
         exit(1)
