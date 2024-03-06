@@ -58,7 +58,7 @@ def download_checkpoint(bucket, key):
     os.remove(output_file)
 
 
-class MyHandler(FileSystemEventHandler):
+class CheckPointMonitor(FileSystemEventHandler):
     def __init__(self, checkpoint_dir, bucket, prefix, job_id):
         super().__init__()
         self.checkpoint_dir = checkpoint_dir
@@ -108,7 +108,7 @@ class MyHandler(FileSystemEventHandler):
 
 
 def monitor_checkpoint_directories(directory, bucket, prefix, job_id, stop_signal):
-    event_handler = MyHandler(directory, bucket, prefix, job_id)
+    event_handler = CheckPointMonitor(directory, bucket, prefix, job_id)
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
     observer.start()

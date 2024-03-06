@@ -8,6 +8,7 @@ from download import concurrently_download
 from upload import upload_file
 from webhooks import send_heartbeat, send_complete_webhook
 from train import train
+from class_data import monitor_class_data
 import time
 import signal
 import os
@@ -96,10 +97,17 @@ def main():
                    "filename": f"{config.instance_dir}/{image.split('/')[-1]}"} for image in job["instance_data_keys"]]
         concurrently_download(images)
 
+        monitor_class_dir = None
+
         if "class_data_keys" in job and job["class_data_keys"] is not None and len(job["class_data_keys"]) > 0:
             class_images = [{"bucket": job["data_bucket"], "key": image,
                              "filename": f"{config.class_dir}/{image.split('/')[-1]}"} for image in job["class_data_keys"]]
             concurrently_download(class_images)
+
+        if "class_data_prefix" in job and job["class_data_prefix"]:
+            monitor_class_dir = threading.Thread(
+                target=monitor_class_data, args=(config.class_dir, job["data_bucket"], job["class_data_prefix"], job_should_stop,))
+            monitor_class_dir.start()
 
         training_thread = threading.Thread(
             target=train, args=(job, job_should_stop,))
@@ -114,6 +122,9 @@ def main():
         logging.info(f"Training process exited: {job['id']}")
         monitoring_thread.join()
         logging.info(f"Monitoring process exited: {job['id']}")
+        if monitor_class_dir is not None:
+            monitor_class_dir.join()
+            logging.info(f"Class data monitoring process exited: {job['id']}")
 
         if "pytorch_lora_weights.safetensors" in os.listdir(config.output_dir):
             upload_file(f"{config.output_dir}/pytorch_lora_weights.safetensors",
@@ -124,7 +135,7 @@ def main():
         heartbeat_active = False
         heartbeat_thread.join()
         reset_for_next_job()
-        if job_should_stop.is_set():
+        if job_should_stop.is_set() and "pytorch_lora_weights.safetensors" not in os.listdir(config.output_dir):
             logging.info(
                 f"Job {job['id']} failed or was canceled. Moving on to next job.")
             continue
