@@ -95,14 +95,28 @@ def main():
 
         images = [{"bucket": job["data_bucket"], "key": image,
                    "filename": f"{config.instance_dir}/{image.split('/')[-1]}"} for image in job["instance_data_keys"]]
-        concurrently_download(images)
+        try:
+            concurrently_download(images)
+        except Exception as e:
+            logging.error(f"Error: {e}")
+            heartbeat_active = False
+            job_should_stop.set()
+            heartbeat_thread.join()
+            continue
 
         monitor_class_dir = None
 
         if "class_data_keys" in job and job["class_data_keys"] is not None and len(job["class_data_keys"]) > 0:
             class_images = [{"bucket": job["data_bucket"], "key": image,
                              "filename": f"{config.class_dir}/{image.split('/')[-1]}"} for image in job["class_data_keys"]]
-            concurrently_download(class_images)
+            try:
+                concurrently_download(class_images)
+            except Exception as e:
+                logging.error(f"Error: {e}")
+                heartbeat_active = False
+                job_should_stop.set()
+                heartbeat_thread.join()
+                continue
 
         if "class_data_prefix" in job and job["class_data_prefix"]:
             monitor_class_dir = threading.Thread(
