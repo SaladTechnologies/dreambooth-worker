@@ -70,8 +70,10 @@ def job_to_command_array(job):
         command_array.append(
             f"--validation_prompt=\"{job['validation_prompt']}\"")
         command_array.append(f"--validation_epochs={job['validation_epochs']}")
-        command_array.append(f"--report_to=wandb")
         command_array.append(f"--sample_batch_size={job['sample_batch_size']}")
+
+    if config.wandb_api_key is not None:
+        command_array.append(f"--report_to=wandb")
 
     return command_array
 

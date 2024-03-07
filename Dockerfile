@@ -1,6 +1,6 @@
 FROM saladtechnologies/dreambooth:sdxl
 
-RUN git pull
+RUN pip install git+https://github.com/huggingface/peft.git
 
 COPY src src
 

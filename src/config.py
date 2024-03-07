@@ -10,7 +10,6 @@ class_dir = os.getenv("CLASS_DIR", "/class_images")
 output_dir = os.getenv("OUTPUT_DIR", "/output")
 
 api_base_url = os.getenv("API_URL", None)
-print(api_base_url)
 api_key = os.getenv("API_KEY", None)
 
 if api_base_url is None or api_key is None:
@@ -29,3 +28,5 @@ salad_project_name = os.getenv("SALAD_PROJECT_NAME", None)
 
 
 heartbeat_interval = int(os.getenv("HEARTBEAT_INTERVAL", "30"))
+
+wandb_api_key = os.getenv("WANDB_API_KEY", None)
