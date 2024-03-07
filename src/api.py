@@ -8,7 +8,7 @@ def get_api_session():
     api.headers.update({"x-api-key": config.api_key})
     retries = Retry(
         total=3,
-        status_forcelist=[400, 500, 502, 503, 504],
+        status_forcelist=[400, 401, 500, 502, 503, 504],
         status=3,
         backoff_factor=1,
         raise_on_status=False)
